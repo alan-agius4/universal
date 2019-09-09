@@ -55,11 +55,6 @@
       "description": "Skip adding Express server file.",
       "type": "boolean",
       "default": false
-    },
-    "skipUniversal": {
-      "description": "Skip the Angular Universal schematic",
-      "type": "boolean",
-      "default": false
     }
   },
   "required": [

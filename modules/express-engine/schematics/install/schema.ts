@@ -47,8 +47,4 @@ export interface Schema {
    * Skip adding Express server file.
    */
   skipServer?: boolean;
-  /**
-   * Skip the Angular Universal schematic
-   */
-  skipUniversal?: boolean;
 }

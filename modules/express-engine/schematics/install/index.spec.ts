@@ -74,7 +74,11 @@ describe('Universal Schematic', () => {
     const tree = await schematicRunner
       .runSchematicAsync('ng-add', defaultOptions, appTree)
       .toPromise();
+
     const contents = JSON.parse(tree.readContent('/projects/bar/tsconfig.server.json'));
-    expect(contents.files).toBe('server.ts');
+    expect(contents.files).toEqual([
+      'src/main.server.ts',
+      'src/server.ts',
+    ]);
   });
 });

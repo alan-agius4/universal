@@ -25,6 +25,7 @@ import {
   SchematicsException,
   template,
   Tree,
+  move,
   url,
 } from '@angular-devkit/schematics';
 import {NodePackageInstallTask} from '@angular-devkit/schematics/tasks';
@@ -36,7 +37,7 @@ import {
 import {getWorkspace, updateWorkspace} from '@schematics/angular/utility/workspace';
 import {
   findPropertyInAstObject,
-  appendPropertyInAstObject,
+  appendValueInAstArray,
 } from '@schematics/angular/utility/json-utils';
 
 async function getClientProject(host, projectName: string): Promise<workspaces.ProjectDefinition> {
@@ -51,11 +52,7 @@ async function getClientProject(host, projectName: string): Promise<workspaces.P
 }
 
 function forceTsExtension(file: string): string {
-  return `${stripTsExtension(file)}.ts`;
-}
-
-function stripTsExtension(file: string): string {
-  return file.replace(/\.ts$/, '');
+  return `${file.replace(/\.ts$/, '')}.ts`;
 }
 
 function addDependenciesAndScripts(options: UniversalOptions, serverDist: string): Rule {
@@ -85,7 +82,7 @@ function addDependenciesAndScripts(options: UniversalOptions, serverDist: string
     const pkg = JSON.parse(buffer.toString());
     pkg.scripts = {
       ...pkg.scripts,
-      'serve:ssr': `node ${serverDist.substr(1)}/main.js`,
+      'serve:ssr': `node ${serverDist}/main.js`,
       'build:ssr': 'npm run build:client-and-server-bundles',
       // tslint:disable-next-line: max-line-length
       'build:client-and-server-bundles': `ng build --prod && ng run ${options.clientProject}:server:production`,
@@ -150,21 +147,20 @@ function updateServerTsConfig(options: UniversalOptions): Rule {
       throw new SchematicsException(`Invalid JSON AST Object (${tsConfigPath})`);
     }
 
-    const files = findPropertyInAstObject(tsConfigAst, 'files');
+    const filesAstNode = findPropertyInAstObject(tsConfigAst, 'files');
 
-    if (files) {
+    if (filesAstNode && filesAstNode.kind === 'array') {
       const rootInSrc = tsConfigPath.includes('src/');
       const rootSrc = rootInSrc ? '' : 'src/';
       const recorder = host.beginUpdate(tsConfigPath);
-      appendPropertyInAstObject(
+
+      appendValueInAstArray(
         recorder,
-        tsConfigAst,
-        'files',
+        filesAstNode,
         join(
           normalize(rootSrc),
           forceTsExtension(options.serverFileName),
         ),
-        2,
       );
 
       host.commitUpdate(recorder);
@@ -193,11 +189,11 @@ export default function (options: UniversalOptions): Rule {
       template({
         ...strings,
         ...options,
-        stripTsExtension,
         forceTsExtension,
         // remove the leading slashes
-        getBrowserDistDirectory: () => browserDist.substr(1),
-      })
+        getBrowserDistDirectory: () => browserDist,
+      }),
+      move(clientProject.root)
     ]);
 
     return chain([
@@ -207,7 +203,7 @@ export default function (options: UniversalOptions): Rule {
       updateConfigFile(options, browserDist, serverDist),
       mergeWith(rootSource),
       addDependenciesAndScripts(options, serverDist),
-      updateServerTsConfig(options),
+      options.skipServer ? noop() : updateServerTsConfig(options),
     ]);
   };
 }
