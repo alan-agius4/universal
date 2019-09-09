@@ -121,8 +121,8 @@ describe('Universal Schematic', () => {
     const contents = JSON.parse(tree.readContent('angular.json'));
     const architect = contents.projects.bar.architect;
     expect(architect.build.configurations.production).toBeDefined();
-    expect(architect.build.options.outputPath).toBe('dist/browser');
-    expect(architect.server.options.outputPath).toBe('dist/server');
+    expect(architect.build.options.outputPath).toBe('dist/bar/browser');
+    expect(architect.server.options.outputPath).toBe('dist/bar/server');
 
     const productionConfig = architect.server.configurations.production;
     expect(productionConfig.fileReplacements).toBeDefined();

@@ -29,7 +29,7 @@ const server = new Server({ port: PORT, host: 'localhost' });
 const DIST_FOLDER = join(process.cwd(), 'dist');
 
 // * NOTE :: leave this as require() since this file is built Dynamically from webpack
-const {AppServerModule, ngHapiEngine} = require('./<%= clientProject %>-server/main');
+const {AppServerModule, ngHapiEngine} = require('./<%= getServerDistDirectory() %>/main');
 
 server.route({
   method: 'GET',
