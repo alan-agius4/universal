@@ -16,14 +16,6 @@ export interface Schema {
    */
   appId?: string;
   /**
-   * The name of the main entry-point file.
-   */
-  main?: string;
-  /**
-   * The name of the test entry-point file.
-   */
-  test?: string;
-  /**
    * The name of the Express server file.
    */
   serverFileName?: string;
@@ -35,10 +27,6 @@ export interface Schema {
    * The name of the TypeScript configuration file.
    */
   tsconfigFileName?: string;
-  /**
-   * The name of the TypeScript configuration file for tests.
-   */
-  testTsconfigFileName?: string;
   /**
    * The name of the application directory.
    */
@@ -63,8 +51,4 @@ export interface Schema {
    * Skip the Angular Universal schematic
    */
   skipUniversal?: boolean;
-  /**
-   * Whether to add webpack configuration files
-   */
-  webpack?: boolean;
 }

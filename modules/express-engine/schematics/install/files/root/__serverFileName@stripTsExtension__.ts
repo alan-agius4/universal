@@ -17,39 +17,49 @@
 
 import 'zone.js/dist/zone-node';
 
+import { ngExpressEngine } from '@nguniversal/express-engine';
 import * as express from 'express';
-import {join} from 'path';
+import { join } from 'path';
+
+import { AppServerModule } from './src/main.server';
 
 // Express server
-const app = express();
+function run() {
+  const app = express();
 
-const PORT = process.env.PORT || <%= serverPort %>;
-const DIST_FOLDER = join(process.cwd(), '<%= getBrowserDistDirectory() %>');
+  const PORT = process.env.PORT || <%= serverPort %>;
+  const DIST_FOLDER = join(process.cwd(), '<%= getBrowserDistDirectory() %>');
 
-// * NOTE :: leave this as require() since this file is built Dynamically from webpack
-const {AppServerModule, ngExpressEngine} = require('./<%= getServerDistDirectory() %>/main');
+  // Our Universal express-engine (found @ https://github.com/angular/universal/tree/master/modules/express-engine)
+  app.engine('html', ngExpressEngine({
+    bootstrap: AppServerModule,
+  }));
 
-// Our Universal express-engine (found @ https://github.com/angular/universal/tree/master/modules/express-engine)
-app.engine('html', ngExpressEngine({
-  bootstrap: AppServerModule,
-}));
+  app.set('view engine', 'html');
+  app.set('views', DIST_FOLDER);
 
-app.set('view engine', 'html');
-app.set('views', DIST_FOLDER);
+  // Example Express Rest API endpoints
+  // app.get('/api/**', (req, res) => { });
+  // Serve static files from /browser
+  app.get('*.*', express.static(DIST_FOLDER, {
+    maxAge: '1y'
+  }));
 
-// Example Express Rest API endpoints
-// app.get('/api/**', (req, res) => { });
-// Serve static files from /browser
-app.get('*.*', express.static(DIST_FOLDER, {
-  maxAge: '1y'
-}));
+  // All regular routes use the Universal engine
+  app.get('*', (req, res) => {
+    res.render('index', { req });
+  });
 
-// All regular routes use the Universal engine
-app.get('*', (req, res) => {
-  res.render('index', { req });
-});
+  // Start up the Node server
+  app.listen(PORT, () => {
+    console.log(`Node Express server listening on http://localhost:${PORT}`);
+  });
+}
 
-// Start up the Node server
-app.listen(PORT, () => {
-  console.log(`Node Express server listening on http://localhost:${PORT}`);
-});
+declare var __non_webpack_require__: NodeRequire;
+const mainModule = __non_webpack_require__.main;
+if (mainModule && mainModule.filename === __filename) {
+  run();
+}
+
+export * from './src/main.server';

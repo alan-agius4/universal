@@ -14,17 +14,6 @@
       "description": "The appId to use withServerTransition.",
       "default": "serverApp"
     },
-    "main": {
-      "type": "string",
-      "format": "path",
-      "description": "The name of the main entry-point file.",
-      "default": "main.server.ts"
-    },
-    "test": {
-      "type": "string",
-      "format": "path",
-      "description": "The name of the test entry-point file."
-    },
     "serverFileName": {
       "type": "string",
       "default": "server.ts",
@@ -39,12 +28,6 @@
       "type": "string",
       "default": "tsconfig.server",
       "description": "The name of the TypeScript configuration file."
-    },
-    "testTsconfigFileName": {
-      "type": "string",
-      "format": "path",
-      "description": "The name of the TypeScript configuration file for tests.",
-      "default": "tsconfig.spec"
     },
     "appDir": {
       "type": "string",
@@ -77,11 +60,6 @@
       "description": "Skip the Angular Universal schematic",
       "type": "boolean",
       "default": false
-    },
-    "webpack": {
-      "description": "Whether to add webpack configuration files",
-      "type": "boolean",
-      "default": true
     }
   },
   "required": [

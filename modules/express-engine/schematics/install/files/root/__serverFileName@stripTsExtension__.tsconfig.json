@@ -16,5 +16,5 @@
       "dom"
     ]
   },
-  "include": ["<%= stripTsExtension(serverFileName) %>.ts"]
+  "include": ["<%= forceTsExtension(serverFileName) %>"]
 }

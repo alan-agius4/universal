@@ -63,20 +63,6 @@ function addDependenciesAndScripts(options: UniversalOptions, serverDist: string
       version: '^5.1.0',
     });
 
-    if (options.webpack) {
-      addPackageJsonDependency(host, {
-        type: NodeDependencyType.Dev,
-        name: 'ts-loader',
-        version: '^5.2.0',
-      });
-      addPackageJsonDependency(host, {
-        type: NodeDependencyType.Dev,
-        name: 'webpack-cli',
-        version: '^3.1.0',
-      });
-    }
-
-    const serverFileName = options.serverFileName.replace('.ts', '');
     const pkgPath = '/package.json';
     const buffer = host.read(pkgPath);
     if (buffer === null) {
@@ -86,15 +72,11 @@ function addDependenciesAndScripts(options: UniversalOptions, serverDist: string
     const pkg = JSON.parse(buffer.toString());
     pkg.scripts = {
       ...pkg.scripts,
-      'compile:server': options.webpack
-        ? 'webpack --config webpack.server.config.js --progress --colors'
-        : `tsc -p ${serverFileName}.tsconfig.json`,
-      'serve:ssr': `node ${serverDist.substr(1)}/${serverFileName}`,
-      'build:ssr': 'npm run build:client-and-server-bundles && npm run compile:server',
+      'serve:ssr': `node ${serverDist.substr(1)}/main.js`,
+      'build:ssr': 'npm run build:client-and-server-bundles',
       // tslint:disable-next-line: max-line-length
       'build:client-and-server-bundles': `ng build --prod && ng run ${options.clientProject}:server:production`,
     };
-
     host.overwrite(pkgPath, JSON.stringify(pkg, null, 2));
 
     return host;
@@ -173,8 +155,6 @@ export default function (options: UniversalOptions): Rule {
 
     const rootSource = apply(url('./files/root'), [
       options.skipServer ? filter(path => !path.startsWith('__serverFileName')) : noop(),
-      options.webpack ?
-        filter(path => !path.includes('tsconfig')) : filter(path => !path.startsWith('webpack')),
       template({
         ...strings,
         ...options as object,
