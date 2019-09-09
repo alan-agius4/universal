@@ -30,14 +30,9 @@ import {
 import {getProject} from '@schematics/angular/utility/project';
 import {getProjectTargets} from '@schematics/angular/utility/project-targets';
 import {InsertChange} from '@schematics/angular/utility/change';
-import {
-  addSymbolToNgModuleMetadata,
-  findNodes,
-  insertAfterLastOccurrence,
-  insertImport
-} from '@schematics/angular/utility/ast-utils';
+import {findNodes, insertAfterLastOccurrence} from '@schematics/angular/utility/ast-utils';
 import * as ts from 'typescript';
-import {findAppServerModulePath, generateExport, getTsSourceFile, getTsSourceText} from './utils';
+import {generateExport, getTsSourceFile, getTsSourceText} from './utils';
 import {updateWorkspace} from '@schematics/angular/utility/workspace';
 
 // TODO(CaerusKaru): make these configurable
@@ -61,11 +56,6 @@ function addDependenciesAndScripts(options: UniversalOptions): Rule {
     addPackageJsonDependency(host, {
       type: NodeDependencyType.Default,
       name: '@nguniversal/hapi-engine',
-      version: '0.0.0-PLACEHOLDER',
-    });
-    addPackageJsonDependency(host, {
-      type: NodeDependencyType.Default,
-      name: '@nguniversal/module-map-ngfactory-loader',
       version: '0.0.0-PLACEHOLDER',
     });
     addPackageJsonDependency(host, {
@@ -100,15 +90,16 @@ function addDependenciesAndScripts(options: UniversalOptions): Rule {
     }
 
     const pkg = JSON.parse(buffer.toString());
-
-    pkg.scripts['compile:server'] = options.webpack ?
-      'webpack --config webpack.server.config.js --progress --colors' :
-      `tsc -p ${serverFileName}.tsconfig.json`;
-    pkg.scripts['serve:ssr'] = `node dist/${serverFileName}`;
-    pkg.scripts['build:ssr'] = 'npm run build:client-and-server-bundles && npm run compile:server';
-    pkg.scripts['build:client-and-server-bundles'] =
-      // tslint:disable:max-line-length
-      `ng build --prod && ng run ${options.clientProject}:server:production --bundleDependencies all`;
+    pkg.scripts = {
+      ...pkg.scripts,
+      'compile:server': options.webpack
+        ? 'webpack --config webpack.server.config.js --progress --colors'
+        : `tsc -p ${serverFileName}.tsconfig.json`,
+      'serve:ssr': `node dist/${serverFileName}`,
+      'build:ssr': 'npm run build:client-and-server-bundles && npm run compile:server',
+      // tslint:disable-next-line: max-line-length
+      'build:client-and-server-bundles': `ng build --prod && ng run ${options.clientProject}:server:production`,
+    };
 
     host.overwrite(pkgPath, JSON.stringify(pkg, null, 2));
 
@@ -143,47 +134,6 @@ function updateConfigFile(options: UniversalOptions) {
   }));
 }
 
-function addModuleMapLoader(options: UniversalOptions): Rule {
-  return (host: Tree) => {
-    const clientProject = getProject(host, options.clientProject);
-    const clientTargets = getProjectTargets(clientProject);
-    if (!clientTargets.server) {
-      // If they skipped Universal schematics and don't have a server target,
-      // just get out
-      return;
-    }
-    const mainPath = normalize('/' + clientTargets.server.options.main);
-    const appServerModuleRelativePath = findAppServerModulePath(host, mainPath);
-    const modulePath = normalize(
-      `/${clientProject.root}/src/${appServerModuleRelativePath}.ts`);
-
-    // Add the module map loader import
-    let moduleSource = getTsSourceFile(host, modulePath);
-    const importModule = 'ModuleMapLoaderModule';
-    const importPath = '@nguniversal/module-map-ngfactory-loader';
-    const moduleMapImportChange = insertImport(moduleSource, modulePath, importModule,
-      importPath) as InsertChange;
-    if (moduleMapImportChange) {
-      const recorder = host.beginUpdate(modulePath);
-      recorder.insertLeft(moduleMapImportChange.pos, moduleMapImportChange.toAdd);
-      host.commitUpdate(recorder);
-    }
-
-    // Add the module map loader module to the imports
-    const importText = 'ModuleMapLoaderModule';
-    moduleSource = getTsSourceFile(host, modulePath);
-    const metadataChanges = addSymbolToNgModuleMetadata(
-      moduleSource, modulePath, 'imports', importText);
-    if (metadataChanges) {
-      const recorder = host.beginUpdate(modulePath);
-      metadataChanges.forEach((change: InsertChange) => {
-        recorder.insertRight(change.pos, change.toAdd);
-      });
-      host.commitUpdate(recorder);
-    }
-  };
-}
-
 function addExports(options: UniversalOptions): Rule {
   return (host: Tree) => {
     const clientProject = getProject(host, options.clientProject);
@@ -201,10 +151,8 @@ function addExports(options: UniversalOptions): Rule {
     const mainRecorder = host.beginUpdate(mainPath);
     const hapiEngineExport = generateExport(mainSourceFile, ['ngHapiEngine'],
       '@nguniversal/hapi-engine');
-    const moduleMapExport = generateExport(mainSourceFile, ['provideModuleMap'],
-      '@nguniversal/module-map-ngfactory-loader');
     const exports = findNodes(mainSourceFile, ts.SyntaxKind.ExportDeclaration);
-    const addedExports = `\n${hapiEngineExport}\n${moduleMapExport}\n`;
+    const addedExports = `\n${hapiEngineExport}\n`;
     const exportChange = insertAfterLastOccurrence(exports, addedExports, mainText,
       0) as InsertChange;
 
@@ -243,7 +191,6 @@ export default function (options: UniversalOptions): Rule {
       updateConfigFile(options),
       mergeWith(rootSource),
       addDependenciesAndScripts(options),
-      addModuleMapLoader(options),
       addExports(options),
     ]);
   };
